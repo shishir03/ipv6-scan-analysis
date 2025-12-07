@@ -4,3 +4,6 @@
 *.dat
 *.json
 all_ips*
+xmap
+xmap_addr
+zgrab2
