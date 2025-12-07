@@ -1,7 +1,9 @@
 *.txt
+*.csv
 *.pfx2as
 *.bz2
 *.dat
+*.mmdb
 *.json
 all_ips*
 xmap
