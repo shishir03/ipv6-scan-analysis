@@ -13,7 +13,7 @@ for file in xmap_addr/*; do
         PORT=${PORT_NUMS[i]}
         echo "[*] Running $PROTO scan on port $PORT on $file"
 
-        zgrab2 http \
+        zgrab2 $PROTO \
             --input-file $file \
             --port $PORT \
             --output-file "zgrab2/${PROTO}_${basename}.json"
