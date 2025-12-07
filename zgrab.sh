@@ -2,7 +2,7 @@
 
 rm zgrab2/*
 
-PROTOCOLS=("http" "https" "ssh" "smtp" "ftp" "imap" "pop3" "telnet")
+PROTOCOLS=("http" "http" "ssh" "smtp" "ftp" "imap" "pop3" "telnet")
 PORT_NUMS=(80 443 22 25 21 143 110 23)
 
 for file in xmap_addr/*; do
@@ -16,6 +16,6 @@ for file in xmap_addr/*; do
         zgrab2 $PROTO \
             --input-file $file \
             --port $PORT \
-            --output-file "zgrab2/${PROTO}_${basename}.json"
+            --output-file "zgrab2/${PROTO}_${PORT}_${basename}.json"
     done
 done
