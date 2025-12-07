@@ -2,4 +2,5 @@
 *.pfx2as
 *.bz2
 *.dat
-all_ips
+*.json
+all_ips*

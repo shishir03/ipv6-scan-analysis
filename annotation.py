@@ -1,7 +1,7 @@
 import pyasn
 asn_db = pyasn.pyasn('pfx2as_rounded.txt')
 
-with open('ipv6_hitlist.txt') as f, open('all_ips','w') as out:
+with open('ipv6_hitlist.txt') as f, open('ipv6_annotated.txt','w') as out:
     next(f)
     for ip in f:
         ip = ip.strip()
