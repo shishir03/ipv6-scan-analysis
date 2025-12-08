@@ -110,6 +110,8 @@ def get_country(ip):
     except Exception as e:
         print(e)
         return None
+    
+# Analyze ZGrab JSON files
 
 PROTOCOLS = ["http", "https", "ssh", "smtp", "ftp", "imap", "pop3", "telnet"]
 
@@ -165,3 +167,45 @@ with open(OUTPUT_CSV, "w", newline="") as csvfile:
     writer.writerows(rows)
 
 print(f"[+] Wrote {len(rows)} rows → {OUTPUT_CSV}")
+
+# Analyze ICMP / TCP text files
+
+icmp_rows = []
+tcp_rows = []
+
+with open("xmap_addr/icmp.txt", "r") as icmp, open("xmap_addr/tcp.txt", "r") as tcp:
+    for icmp_ip in icmp:
+        icmp_ip = icmp_ip.strip()
+        asn, prefix = get_asn_prefix(icmp_ip)
+        icmp_rows.append({
+            "ip": icmp_ip,
+            "asn": asn,
+            "prefix": prefix,
+            "country": get_country(icmp_ip)
+        })
+
+    for tcp_ip in tcp:
+        tcp_ip = tcp_ip.strip()
+        asn, prefix = get_asn_prefix(tcp_ip)
+        tcp_rows.append({
+            "ip": tcp_ip,
+            "asn": asn,
+            "prefix": prefix,
+            "country": get_country(tcp_ip)
+        })
+
+fieldnames = ["ip", "asn", "prefix", "country"]
+
+with open("icmp.csv", "w", newline="") as icmp_csv:
+    writer = csv.DictWriter(icmp_csv, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerows(icmp_rows)
+
+print(f"[+] Wrote {len(icmp_rows)} rows → icmp.csv")
+
+with open("tcp.csv", "w", newline="") as tcp_csv:
+    writer = csv.DictWriter(tcp_csv, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerows(tcp_rows)
+
+print(f"[+] Wrote {len(tcp_rows)} rows → tcp.csv")

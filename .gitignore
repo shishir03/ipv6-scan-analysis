@@ -5,6 +5,7 @@
 *.dat
 *.mmdb
 *.json
+*.png
 all_ips*
 xmap
 xmap_addr
