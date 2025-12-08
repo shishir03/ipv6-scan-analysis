@@ -40,6 +40,8 @@ def classify_device(server_header, banner):
         return "Apache"
     if "cloudflare" in field:
         return "Cloudflare edge"
+    if "akamaighost" in field:
+        return "Akamai"
     if "iis" in field or "microsoft-httpapi" in field:
         return "Microsoft/IIS"
     if "proxygen" in field:
@@ -80,7 +82,7 @@ def parse_record(record, protocol):
     result = prot.get("result", {})
 
     server = None
-    banner = result.get("banner")
+    banner = None if result is None else result.get("banner")
     status = prot.get("status")
     success = status == "success"
 
@@ -109,7 +111,7 @@ def get_country(ip):
         print(e)
         return None
 
-PROTOCOLS = ["http", "https", "ssh", "smtp"]
+PROTOCOLS = ["http", "https", "ssh", "smtp", "ftp", "imap", "pop3", "telnet"]
 
 rows = []
 
