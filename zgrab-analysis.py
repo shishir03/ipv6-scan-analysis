@@ -22,14 +22,16 @@ asn_db = pyasn.pyasn(ASN_DB_PATH)
 # Load GeoIP DB
 geoip_db = GeoIPReader(GEOIP_DB_PATH)
 
-def classify_device(server_header, banner, cert_cn):
+def classify_device(server_header, banner):
+    if server_header is None and banner is None:
+        return "Unknown"
+
     field = " ".join([
         server_header or "",
         banner or "",
-        cert_cn or "",
     ]).lower()
 
-    # Common servers
+    # HTTP servers
     if "cisco" in field:
         return "Cisco"
     if "nginx" in field or "openresty" in field:
@@ -42,55 +44,55 @@ def classify_device(server_header, banner, cert_cn):
         return "Microsoft/IIS"
     if "proxygen" in field:
         return "Proxygen"
+    
+    # SSH servers
+    if "openssh" in field:
+        return "OpenSSH"
+    if "dropbear" in field:
+        return "Dropbear"
+    if "comware" in field:
+        return "Comware"
+    
+    # IMAP servers / POP3 servers
+    if "dovecot" in field:
+        return "Dovecot"
+    
+    # Telnet servers
+    if "kkeeneticos" in field:
+        return "KKeeneticOS"
+    
+    # FTP servers
+    if "proftpd" in field:
+        return "ProFTPD"
+    if "220-idea ftp server" in field:
+        return "220-Idea FTP Server"
+    if "pure-ftpd" in field:
+        return "Pure-FTPd"
 
-    return "Unknown"
+    return "Other"
 
-def get_success(record, protocol):
-    data = record.get("data", {})
-    status = data.get(protocol, {}).get("status", None)
-    return status == "success"
+def parse_record(record, protocol):
+    if(protocol == "https"):
+        protocol = "http"
 
-def parse_http(record):
-    """Extract useful fields from ZGrab2 http/https module."""
     ip = record["ip"]
-    data = record.get("data", {})
+    prot = record.get("data", {}).get(protocol, {})
+    result = prot.get("result", {})
 
-    http = data.get("http", {}).get("result", {})
     server = None
-    banner = None
-    cert_cn = None
+    banner = result.get("banner")
+    status = prot.get("status")
+    success = status == "success"
 
-    # HTTP banner
-    headers = http.get("response", {}).get("headers", {})
-    server = None if headers.get("server") is None else headers.get("server")[0]
+    if protocol == "http":
+        headers = result.get("response", {}).get("headers", {})
+        server = None if headers.get("server") is None else headers.get("server")[0]
 
-    # HTTPS certificate?
-    tls = data.get("tls", {}).get("result", {})
-    if tls:
-        certs = tls.get("handshake_log", {}).get("server_certificates", {})
-        parsed = certs.get("certificate", {}).get("parsed", {})
-        cert_cn = None
-        if "subject" in parsed:
-            subj = parsed["subject"]
-            cert_cn = " ".join(subj.get("common_name", []) or [])
+    elif protocol == "ssh":
+        server = result.get("server_id", {}).get("software")
+        banner = result.get("key_exchange", {}).get("server_host_key", {}).get("raw")
 
-    return ip, server, banner, cert_cn
-
-
-def parse_ssh(record):
-    ip = record["ip"]
-    ssh = record.get("data", {}).get("ssh", {})
-    banner = ssh.get("banner")
-    host_key = ssh.get("host_key")
-    return ip, None, banner or host_key, None
-
-
-def parse_smtp(record):
-    ip = record["ip"]
-    smtp = record.get("data", {}).get("smtp", {})
-    banner = smtp.get("ehlo", {}).get("server", None)
-    return ip, None, banner, None
-
+    return ip, server, banner, success
 
 def get_asn_prefix(ip):
     try:
@@ -107,19 +109,12 @@ def get_country(ip):
         print(e)
         return None
 
-PARSERS = {
-    "http": parse_http,
-    "https": parse_http,
-    "ssh": parse_ssh,
-    "smtp": parse_smtp,
-}
+PROTOCOLS = ["http", "https", "ssh", "smtp"]
 
 rows = []
 
-for protocol in PARSERS.keys():
+for protocol in PROTOCOLS:
     base = f"{protocol}_tcp.json"
-
-    parser = PARSERS[protocol]
 
     path = os.path.join(ZGRAB_DIR, base)
     print(f"[*] Processing {path} ({protocol})")
@@ -132,13 +127,12 @@ for protocol in PARSERS.keys():
                 continue
 
             # Parse ZGrab data
-            ip, server, banner, cert_cn = parser(record)
-            success = get_success(record, protocol)
+            ip, server, banner, success = parse_record(record, protocol)
 
             # Enrichment
             asn, prefix = get_asn_prefix(ip)
             country = get_country(ip)
-            device = classify_device(server, banner, cert_cn)
+            device = classify_device(server, banner)
 
             # Append unified row
             rows.append({
