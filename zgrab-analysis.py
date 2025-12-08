@@ -45,6 +45,11 @@ def classify_device(server_header, banner, cert_cn):
 
     return "Unknown"
 
+def get_success(record, protocol):
+    data = record.get("data", {})
+    status = data.get(protocol, {}).get("status", None)
+    return status == "success"
+
 def parse_http(record):
     """Extract useful fields from ZGrab2 http/https module."""
     ip = record["ip"]
@@ -128,6 +133,7 @@ for protocol in PARSERS.keys():
 
             # Parse ZGrab data
             ip, server, banner, cert_cn = parser(record)
+            success = get_success(record, protocol)
 
             # Enrichment
             asn, prefix = get_asn_prefix(ip)
@@ -142,7 +148,8 @@ for protocol in PARSERS.keys():
                 "country": country,
                 "protocol": protocol,
                 "server_header": server,
-                "device_type": device
+                "device_type": device,
+                "success": success
             })
 
 fieldnames = [
@@ -152,7 +159,8 @@ fieldnames = [
     "country",
     "protocol",
     "server_header",
-    "device_type"
+    "device_type",
+    "success"
 ]
 
 with open(OUTPUT_CSV, "w", newline="") as csvfile:
